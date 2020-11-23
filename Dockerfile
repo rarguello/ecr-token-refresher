@@ -1,6 +1,6 @@
-FROM openshift/python:3.5
+FROM amazon/aws-cli
 
-MAINTAINER Koray Seremet <koray@redhat.com>
+MAINTAINER Ricardo Arguello <ricardo.arguello@gmail.com>
 
 LABEL name="ecr-token-refresher" \
       architecture="x86_64" \
@@ -8,12 +8,18 @@ LABEL name="ecr-token-refresher" \
       io.k8s.description="Amazon ECR registry token refresher" \
       io.openshift.tags="openshift,aws,ecr"
 
-USER root
-ENV LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64/
-RUN export LD_LIBRARY_PATH=/opt/rh/rh-python35/root/usr/lib64:$LD_LIBRARY_PATH && \ 
-    pip install --upgrade pip awscli boto3 && \
-    yum install -y --setopt=tsflags=nodocs --enablerepo=rhel-7-server-ose-3.5-rpms atomic-openshift-clients
-COPY scripts/ecr-token-refresher.sh /opt/app-root/bin
+RUN curl -sO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz && \
+    yum -y install tar gzip && \
+    tar xzf openshift-client-linux.tar.gz -C /usr/local/bin && \
+    rm openshift-client-linux.tar.gz /usr/local/bin/README.md && \
+    yum -y remove tar gzip && \
+    yum clean all && \
+    chmod g+w /aws
 
-RUN chmod 755 /opt/app-root/bin/ecr-token-refresher.sh
-CMD /opt/app-root/bin/ecr-token-refresher.sh
+COPY scripts/ecr-token-refresher.sh /usr/local/bin
+
+ENTRYPOINT []
+RUN chmod 755 /usr/local/bin/ecr-token-refresher.sh
+
+USER 1001
+CMD ["ecr-token-refresher.sh"]
